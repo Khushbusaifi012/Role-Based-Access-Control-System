@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Dynamic RBAC{% endblock %}
+{% block body %}
+{% include "partials/navbar.html" %}
+<div class="container">
+  {% include "partials/page_header.html" with page_title="Dashboard" page_subtitle="Your access overview for the selected organization" %}
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Organization</div>
+      <div class="stat-value">{{ current_org_name|default:"—" }}</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">Your Role</div>
+      <div class="stat-value">{{ membership.role.name|default:"No role" }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Active Features</div>
+      <div class="stat-value">{{ permissions|length }} enabled</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Your Permissions</h2>
+        <p class="card-desc">Features currently enabled for your role</p>
+      </div>
+      {% if membership %}
+        <span class="badge badge-role">{{ membership.role.name }}</span>
+      {% endif %}
+    </div>
+    {% if membership %}
+      <div class="perm-grid">
+        {% for perm in permissions %}
+          <div class="perm-item">
+            <span>{{ perm }}</span>
+            <span class="badge badge-on">ON</span>
+          </div>
+        {% empty %}
+          <p class="empty-state">No features enabled for this role.</p>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="alert-info">No organization membership found.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">System Capabilities</h2>
+    <p class="card-desc mt-1">What this RBAC system supports</p>
+    <div class="feature-grid mt-2">
+      <div class="feature-card">
+        <h3>Multi-Organization</h3>
+        <p>Isolated memberships per organization with separate roles.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Default Roles</h3>
+        <p>Admin, Manager, Member, and Viewer built-in templates.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Custom Roles</h3>
+        <p>Create org-specific roles with granular feature toggles.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Audit Logs</h3>
+        <p>Track login, logout, and permission changes with IP.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function switchOrg(orgId) {
+  window.location.href = "?org=" + orgId;
+}
+</script>
+{% endblock %}

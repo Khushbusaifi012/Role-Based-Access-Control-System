@@ -1,0 +1,23 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">{{ page_title }}</h2>
+    {% if page_subtitle %}<p class="page-subtitle">{{ page_subtitle }}</p>{% endif %}
+  </div>
+  {% if organizations %}
+    {% if organizations|length > 1 %}
+    <div class="org-select">
+      <label>Organization</label>
+      <select id="orgSelect" onchange="switchOrg(this.value)">
+        {% for org in organizations %}
+          <option value="{{ org.id }}" {% if org.id == current_org_id %}selected{% endif %}>{{ org.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% else %}
+    <div class="org-select">
+      <label>Organization</label>
+      <div class="org-badge">{{ organizations.0.name }}</div>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>

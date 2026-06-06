@@ -1,0 +1,20 @@
+<div class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">RB</div>
+    <div>
+      <h1>Dynamic RBAC</h1>
+      <span class="brand-sub">Multi-org Access Control</span>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="{% url 'roles' %}" class="nav-link {% if request.resolver_match.url_name == 'roles' %}active{% endif %}">Roles</a>
+    <a href="{% url 'audit' %}" class="nav-link {% if request.resolver_match.url_name == 'audit' %}active{% endif %}">Audit Logs</a>
+  </nav>
+  <div class="navbar-actions">
+    {% if request.user.is_authenticated %}
+      <span class="user-chip">{{ request.user.email }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-outline btn-sm">Logout</a>
+    {% endif %}
+  </div>
+</div>

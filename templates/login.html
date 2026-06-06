@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Login — Dynamic RBAC{% endblock %}
+{% block body %}
+<div class="login-page">
+  <div class="login-hero">
+    <h1>Dynamic RBAC System</h1>
+    <p>Simple multi-organization role and feature access control with audit logging.</p>
+    <ul>
+      <li>Multi-organization support</li>
+      <li>Default & custom roles</li>
+      <li>Feature toggles ON/OFF</li>
+      <li>Audit trail for all changes</li>
+    </ul>
+  </div>
+  <div class="login-panel">
+    <div class="login-box">
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to manage roles and permissions</p>
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="admin@acme.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
+      </form>
+      <div class="demo-box">
+        <strong>Demo Accounts (Acme Corp)</strong>
+        admin@acme.com / admin123<br>
+        manager@acme.com / manager123
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

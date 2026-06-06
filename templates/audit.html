@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs — Dynamic RBAC{% endblock %}
+{% block body %}
+{% include "partials/navbar.html" %}
+<div class="container">
+  {% include "partials/page_header.html" with page_title="Audit Logs" page_subtitle="Track who did what and when" %}
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Activity Trail</h2>
+        <p class="card-desc">Login, logout, and permission change history</p>
+      </div>
+    </div>
+
+    {% if not can_view %}
+      <div class="alert-info">You don't have permission to view audit logs.</div>
+    {% else %}
+      <div class="table-wrap">
+        <table id="auditTable">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Resource</th>
+              <th>IP Address</th>
+            </tr>
+          </thead>
+          <tbody id="auditBody">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const ORG_ID = {{ current_org_id|default:"null" }};
+const CAN_VIEW = {{ can_view|yesno:"true,false" }};
+
+function switchOrg(orgId) {
+  window.location.href = "?org=" + orgId;
+}
+
+function badgeClass(action) {
+  if (["LOGIN", "LOGOUT"].includes(action)) return "badge-login";
+  if (action === "CREATE") return "badge-create";
+  if (["UPDATE", "PERMISSION_CHANGE"].includes(action)) return "badge-update";
+  if (action === "LOGIN_FAILED") return "badge-off";
+  return "badge-role";
+}
+
+async function loadAudit() {
+  if (!CAN_VIEW) return;
+  const res = await fetch(`/api/audit-logs/?org_id=${ORG_ID}`);
+  const logs = await res.json();
+  const tbody = document.getElementById("auditBody");
+  if (!logs.length) {
+    tbody.innerHTML = "<tr><td colspan='5' class='empty-state'>No logs yet. Try logging in/out or changing permissions.</td></tr>";
+    return;
+  }
+  tbody.innerHTML = logs.map(log => `
+    <tr>
+      <td>${new Date(log.created_at).toLocaleString()}</td>
+      <td><strong>${log.user_email}</strong></td>
+      <td><span class="badge ${badgeClass(log.action)}">${log.action}</span></td>
+      <td>${log.resource_type || "—"}${log.resource_id ? " #" + log.resource_id : ""}</td>
+      <td>${log.ip_address || "—"}</td>
+    </tr>
+  `).join("");
+}
+
+loadAudit();
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Roles — Dynamic RBAC{% endblock %}
+{% block body %}
+{% include "partials/navbar.html" %}
+<div class="container">
+  {% include "partials/page_header.html" with page_title="Roles & Permissions" page_subtitle="Manage default and custom roles with feature controls" %}
+
+  {% if not can_manage %}
+    <div class="alert-info">You have view-only access. Contact an admin to manage roles.</div>
+  {% endif %}
+
+  <div class="card">
+    <div class="flex-between">
+      <div>
+        <h2 class="card-title">All Roles</h2>
+        <p class="card-desc">Toggle features ON/OFF for each role</p>
+      </div>
+      {% if can_manage %}
+        <button class="btn btn-primary btn-sm" onclick="showCreateForm()">+ Custom Role</button>
+      {% endif %}
+    </div>
+
+    <div id="createForm" class="hidden create-form-box">
+      <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">Create Custom Role</h3>
+      <div class="form-group">
+        <label>Role Name</label>
+        <input type="text" id="roleName" placeholder="e.g. Finance Analyst">
+      </div>
+      <div class="form-group">
+        <label>Slug</label>
+        <input type="text" id="roleSlug" placeholder="e.g. finance-analyst">
+      </div>
+      <div class="role-examples">
+        <strong>Quick examples — click to fill:</strong>
+        <button type="button" onclick="fillRoleExample('Finance Analyst', 'finance-analyst')">Finance Analyst</button>
+        <button type="button" onclick="fillRoleExample('HR Coordinator', 'hr-coordinator')">HR Coordinator</button>
+        <button type="button" onclick="fillRoleExample('Support Agent', 'support-agent')">Support Agent</button>
+      </div>
+      <button class="btn btn-primary btn-sm mt-1" onclick="createRole()">Create Role</button>
+      <button class="btn btn-secondary btn-sm" onclick="hideCreateForm()">Cancel</button>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <div id="rolesList" class="mt-2"><p class="empty-state">Loading roles...</p></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const ORG_ID = {{ current_org_id|default:"null" }};
+const CAN_MANAGE = {{ can_manage|yesno:"true,false" }};
+
+function switchOrg(orgId) {
+  window.location.href = "?org=" + orgId;
+}
+
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return v ? v.pop() : '';
+}
+
+async function loadRoles() {
+  const res = await fetch(`/api/roles/?org_id=${ORG_ID}`);
+  const roles = await res.json();
+  const container = document.getElementById("rolesList");
+  if (!roles.length) {
+    container.innerHTML = "<p class='empty-state'>No roles found.</p>";
+    return;
+  }
+  container.innerHTML = roles.map(role => `
+    <div class="card role-card ${role.organization ? 'custom' : ''}">
+      <div class="flex-between">
+        <div>
+          <strong style="font-size:1rem;">${role.name}</strong>
+          ${role.is_default && !role.organization
+            ? '<span class="badge badge-role">Default</span>'
+            : '<span class="badge badge-custom">Custom</span>'}
+          <p class="card-desc">${role.description || "Organization-specific role"}</p>
+        </div>
+      </div>
+      <div class="perm-grid mt-1">
+        ${role.permissions.map(p => `
+          <div class="perm-item">
+            <label>
+              <input type="checkbox" ${p.is_enabled ? "checked" : ""}
+                ${(!CAN_MANAGE || (role.is_default && !role.organization)) ? "disabled" : ""}
+                onchange="togglePerm(${role.id}, '${p.feature_code}', this.checked)">
+              ${p.feature_name}
+            </label>
+            <span class="badge ${p.is_enabled ? "badge-on" : "badge-off"}">${p.is_enabled ? "ON" : "OFF"}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+async function togglePerm(roleId, featureCode, enabled) {
+  await fetch(`/api/roles/${roleId}/permissions/?org_id=${ORG_ID}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify([{ feature_code: featureCode, is_enabled: enabled }]),
+  });
+  showToast("Permission updated successfully!");
+  loadRoles();
+}
+
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = `toast toast-${type}`;
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => {
+    toast.className = "toast hidden";
+  }, 3000);
+}
+
+function fillRoleExample(name, slug) {
+  document.getElementById("roleName").value = name;
+  document.getElementById("roleSlug").value = slug;
+}
+
+async function createRole() {
+  const name = document.getElementById("roleName").value.trim();
+  const slug = document.getElementById("roleSlug").value.trim().toLowerCase();
+  if (!name || !slug) {
+    showToast("Please enter role name and slug.", "error");
+    return;
+  }
+  const res = await fetch(`/api/roles/?org_id=${ORG_ID}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify({ name, slug, org_id: ORG_ID }),
+  });
+  if (res.ok) {
+    document.getElementById("roleName").value = "";
+    document.getElementById("roleSlug").value = "";
+    hideCreateForm();
+    showToast(`Role "${name}" created successfully!`);
+    loadRoles();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    const msg = data.slug?.[0] || data.detail || data.error || "Could not create role.";
+    showToast(msg, "error");
+  }
+}
+
+function showCreateForm() { document.getElementById("createForm").classList.remove("hidden"); }
+function hideCreateForm() { document.getElementById("createForm").classList.add("hidden"); }
+
+loadRoles();
+</script>
+{% endblock %}
