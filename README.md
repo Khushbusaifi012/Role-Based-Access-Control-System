@@ -69,7 +69,6 @@ Open `.env` and set your **MySQL password** and a **SECRET_KEY**.
 2. Create the database (one-time):
 
    ```bash
-   # MySQL Workbench mein scripts/create_database.sql run karo, ya:
    mysql -u root -p < scripts/create_database.sql
    ```
 
@@ -83,17 +82,6 @@ Open `.env` and set your **MySQL password** and a **SECRET_KEY**.
    DB_HOST=127.0.0.1
    DB_PORT=3306
    ```
-
-#### Option B — SQLite (quick local demo, no MySQL needed)
-
-Either skip creating `.env`, or set in `.env`:
-
-```env
-DB_ENGINE=sqlite
-```
-
-Django will use `db.sqlite3` automatically.
-
 ### 5. Run migrations
 
 ```bash
@@ -137,14 +125,3 @@ Open **http://127.0.0.1:8000/** in your browser.
 4. Permission check: `user.has_feature(org_id, "audit.view")`
 
 ---
-
-## Project Structure (quick reference)
-
-| Path | Purpose |
-|------|---------|
-| `.env.example` | Template for local `.env` (safe to share) |
-| `.env` | Your local secrets — **never commit this** |
-| `scripts/create_database.sql` | Creates empty MySQL database before migrate |
-| `apps/rbac/` | Roles, features, permissions logic |
-| `apps/accounts/` | Users, login, dashboard |
-| `apps/audit/` | Audit logging |
