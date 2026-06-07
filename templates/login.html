@@ -24,13 +24,28 @@
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input type="password" name="password" id="password" placeholder="Enter password" autocomplete="current-password">
+          <div class="password-field">
+            <input type="password" name="password" id="password" placeholder="Enter password" autocomplete="current-password">
+            <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password" title="Show password">
+              <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="icon-eye-off hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%">Sign In</button>
       </form>
     </div>
   </div>
 </div>
+
+<div id="toast" class="toast hidden"></div>
 
 <div class="modal-overlay" id="login-modal" hidden>
   <div class="modal-box" role="alertdialog" aria-labelledby="modal-title" aria-describedby="modal-message">
@@ -50,7 +65,20 @@
   const closeBtn = document.getElementById("modal-close");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
+  const passwordToggle = document.getElementById("password-toggle");
+  const eyeIcon = passwordToggle.querySelector(".icon-eye");
+  const eyeOffIcon = passwordToggle.querySelector(".icon-eye-off");
   const serverError = {% if error %}"{{ error|escapejs }}"{% else %}null{% endif %};
+
+  function showToast(message, type = "success") {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.className = `toast toast-${type}`;
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => {
+      toast.className = "toast hidden";
+    }, 3000);
+  }
 
   function showModal(message) {
     messageEl.textContent = message;
@@ -65,6 +93,15 @@
   function validateEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
+
+  passwordToggle.addEventListener("click", function () {
+    const showPassword = passwordInput.type === "password";
+    passwordInput.type = showPassword ? "text" : "password";
+    eyeIcon.classList.toggle("hidden", showPassword);
+    eyeOffIcon.classList.toggle("hidden", !showPassword);
+    passwordToggle.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+    passwordToggle.title = showPassword ? "Hide password" : "Show password";
+  });
 
   closeBtn.addEventListener("click", hideModal);
   modal.addEventListener("click", function (e) {
@@ -99,6 +136,12 @@
   });
 
   if (serverError) showModal(serverError);
+
+  {% if messages %}
+    {% for message in messages %}
+      showToast("{{ message|escapejs }}", "{{ message.tags|default:'success' }}");
+    {% endfor %}
+  {% endif %}
 })();
 </script>
 {% endblock %}

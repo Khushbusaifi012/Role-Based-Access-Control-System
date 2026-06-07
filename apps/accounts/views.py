@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
@@ -59,6 +60,7 @@ def login_view(request):
         if user:
             login(request, user)
             log_audit(request, action="LOGIN", user=user)
+            messages.success(request, "Logged in successfully!")
             return redirect("dashboard")
         log_audit(request, action="LOGIN_FAILED", details={"email": email})
         error = "Invalid email or password"
@@ -66,9 +68,12 @@ def login_view(request):
 
 
 def logout_view(request):
-    if request.user.is_authenticated:
+    was_authenticated = request.user.is_authenticated
+    if was_authenticated:
         log_audit(request, action="LOGOUT", user=request.user)
     logout(request)
+    if was_authenticated:
+        messages.success(request, "Logged out successfully!")
     return redirect("login")
 
 

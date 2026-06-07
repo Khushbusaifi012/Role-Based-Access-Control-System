@@ -2,6 +2,7 @@
 {% block title %}Dashboard — Dynamic RBAC{% endblock %}
 {% block body %}
 {% include "partials/navbar.html" %}
+<div id="toast" class="toast hidden"></div>
 <div class="container">
   {% include "partials/page_header.html" with page_title="Dashboard" page_subtitle="Your access overview for the selected organization" %}
 
@@ -75,5 +76,21 @@
 function switchOrg(orgId) {
   window.location.href = "?org=" + orgId;
 }
+
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = `toast toast-${type}`;
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => {
+    toast.className = "toast hidden";
+  }, 3000);
+}
+
+{% if messages %}
+  {% for message in messages %}
+    showToast("{{ message|escapejs }}", "{{ message.tags|default:'success' }}");
+  {% endfor %}
+{% endif %}
 </script>
 {% endblock %}
