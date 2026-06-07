@@ -406,6 +406,16 @@ a {
   width: 100%;
 }
 
+.modal-actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.modal-actions .btn {
+  flex: 1;
+  width: auto;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 1rem;
