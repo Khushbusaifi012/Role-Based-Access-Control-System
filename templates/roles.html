@@ -40,6 +40,25 @@
       <button class="btn btn-secondary btn-sm" onclick="hideCreateForm()">Cancel</button>
     </div>
 
+    <div id="editForm" class="hidden create-form-box">
+      <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">Edit Custom Role</h3>
+      <input type="hidden" id="editRoleId">
+      <div class="form-group">
+        <label>Role Name</label>
+        <input type="text" id="editRoleName" placeholder="e.g. Finance Analyst">
+      </div>
+      <div class="form-group">
+        <label>Slug</label>
+        <input type="text" id="editRoleSlug" placeholder="e.g. finance-analyst">
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <input type="text" id="editRoleDescription" placeholder="Short description">
+      </div>
+      <button class="btn btn-primary btn-sm mt-1" onclick="saveRole()">Save Changes</button>
+      <button class="btn btn-secondary btn-sm" onclick="hideEditForm()">Cancel</button>
+    </div>
+
     <div id="toast" class="toast hidden"></div>
     <div id="rolesList" class="mt-2"><p class="empty-state">Loading roles...</p></div>
   </div>
@@ -49,6 +68,7 @@
 <script>
 const ORG_ID = {{ current_org_id|default:"null" }};
 const CAN_MANAGE = {{ can_manage|yesno:"true,false" }};
+let rolesData = [];
 
 function switchOrg(orgId) {
   window.location.href = "?org=" + orgId;
@@ -62,6 +82,7 @@ function getCookie(name) {
 async function loadRoles() {
   const res = await fetch(`/api/roles/?org_id=${ORG_ID}`);
   const roles = await res.json();
+  rolesData = roles;
   const container = document.getElementById("rolesList");
   if (!roles.length) {
     container.innerHTML = "<p class='empty-state'>No roles found.</p>";
@@ -77,6 +98,12 @@ async function loadRoles() {
             : '<span class="badge badge-custom">Custom</span>'}
           <p class="card-desc">${role.description || "Organization-specific role"}</p>
         </div>
+        ${CAN_MANAGE && role.organization ? `
+          <div class="role-actions">
+            <button class="btn btn-secondary btn-sm" onclick="showEditForm(${role.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteRole(${role.id})">Delete</button>
+          </div>
+        ` : ""}
       </div>
       <div class="perm-grid mt-1">
         ${role.permissions.map(p => `
@@ -151,8 +178,77 @@ async function createRole() {
   }
 }
 
-function showCreateForm() { document.getElementById("createForm").classList.remove("hidden"); }
-function hideCreateForm() { document.getElementById("createForm").classList.add("hidden"); }
+function showCreateForm() {
+  hideEditForm();
+  document.getElementById("createForm").classList.remove("hidden");
+}
+
+function hideCreateForm() {
+  document.getElementById("createForm").classList.add("hidden");
+}
+
+function showEditForm(roleId) {
+  const role = rolesData.find(r => r.id === roleId);
+  if (!role) return;
+  hideCreateForm();
+  document.getElementById("editRoleId").value = role.id;
+  document.getElementById("editRoleName").value = role.name;
+  document.getElementById("editRoleSlug").value = role.slug;
+  document.getElementById("editRoleDescription").value = role.description || "";
+  document.getElementById("editForm").classList.remove("hidden");
+  document.getElementById("editForm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function hideEditForm() {
+  document.getElementById("editForm").classList.add("hidden");
+}
+
+async function saveRole() {
+  const roleId = document.getElementById("editRoleId").value;
+  const name = document.getElementById("editRoleName").value.trim();
+  const slug = document.getElementById("editRoleSlug").value.trim().toLowerCase();
+  const description = document.getElementById("editRoleDescription").value.trim();
+  if (!name || !slug) {
+    showToast("Please enter role name and slug.", "error");
+    return;
+  }
+  const res = await fetch(`/api/roles/${roleId}/?org_id=${ORG_ID}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": getCookie("csrftoken"),
+    },
+    body: JSON.stringify({ name, slug, description }),
+  });
+  if (res.ok) {
+    hideEditForm();
+    showToast(`Role "${name}" updated successfully!`);
+    loadRoles();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    const msg = data.slug?.[0] || data.detail || data.error || Object.values(data).flat()[0] || "Could not update role.";
+    showToast(msg, "error");
+  }
+}
+
+async function deleteRole(roleId) {
+  const role = rolesData.find(r => r.id === roleId);
+  if (!role) return;
+  if (!confirm(`Delete role "${role.name}"? This cannot be undone.`)) return;
+  const res = await fetch(`/api/roles/${roleId}/?org_id=${ORG_ID}`, {
+    method: "DELETE",
+    headers: { "X-CSRFToken": getCookie("csrftoken") },
+  });
+  if (res.ok) {
+    hideEditForm();
+    showToast(`Role "${role.name}" deleted successfully!`);
+    loadRoles();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    const msg = data.error || data.detail || "Could not delete role.";
+    showToast(msg, "error");
+  }
+}
 
 loadRoles();
 </script>

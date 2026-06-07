@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -68,10 +69,29 @@ class RoleViewSet(viewsets.ModelViewSet):
             details={"name": role.name},
         )
 
+    def perform_update(self, serializer):
+        role = serializer.instance
+        if role.is_default and role.organization is None:
+            raise ValidationError("Cannot edit default roles")
+        role = serializer.save()
+        log_audit(
+            self.request,
+            action="UPDATE",
+            resource_type="Role",
+            resource_id=role.id,
+            organization=role.organization,
+            details={"name": role.name, "slug": role.slug},
+        )
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.is_default and instance.organization is None:
             return Response({"error": "Cannot delete default roles"}, status=status.HTTP_400_BAD_REQUEST)
+        if instance.memberships.exists():
+            return Response(
+                {"error": "Cannot delete this role while users are assigned. Change their role first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         log_audit(
             request,
             action="DELETE",

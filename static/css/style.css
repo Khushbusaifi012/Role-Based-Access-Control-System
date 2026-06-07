@@ -504,6 +504,15 @@ a {
   color: var(--text);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
 .error {
   background: var(--danger-bg);
   color: var(--danger);
@@ -568,6 +577,12 @@ a {
 
 .role-card.custom {
   border-left-color: #2563eb;
+}
+
+.role-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 /* Table */

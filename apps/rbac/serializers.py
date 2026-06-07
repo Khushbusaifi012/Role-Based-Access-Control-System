@@ -36,6 +36,15 @@ class RoleSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("is_default",)
 
+    def validate(self, attrs):
+        if not self.instance or not self.instance.organization:
+            return attrs
+        slug = attrs.get("slug", self.instance.slug)
+        qs = Role.objects.filter(organization=self.instance.organization, slug=slug).exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError({"slug": "Role with this slug already exists in organization."})
+        return attrs
+
 
 class RoleCreateSerializer(serializers.ModelSerializer):
     class Meta:
